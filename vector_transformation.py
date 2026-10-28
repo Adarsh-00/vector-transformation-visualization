@@ -1,45 +1,115 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-input_vector = list(map(int, input("enter your vector: ").split()))
+def input_vector(dimensions, prompt="Enter vector"):
+    while True:
+        values = list(map(float, input(f"{prompt} ({dimensions} values): ").split()))
 
-vector = np.array(input_vector)
-tail_of_vector = (0,0)
-
-plt.quiver(tail_of_vector[0], tail_of_vector[1], vector[0], vector[1], angles='xy', scale_units = 'xy', scale = 1, color='blue')
-plt.grid(True)
-plt.xlim(-2,10)
-plt.ylim(-2,10)
-plt.axhline(0, color='black')
-plt.axvline(0,color='black')
-plt.show()
-
-composition = np.array([[1,0],[0,1]])
-
-while(True):
-    x = input("Do you want to add transformation (yes/no) :")
-    if x == 'yes':
-    #vector transformation
-        user_tras_icap = list(map(int, input("Enter x transformation cordinates").split()))
-        user_tras_jcap = list(map(int, input("Enter y transformation cordinates").split()))
+        if len(values) == dimensions:
+            return np.array(values)
         
-        transformation_matrix = np.array([user_tras_icap,user_tras_jcap])
+        print(f"Please enter exactly {dimensions} values.")
 
-        composition = transformation_matrix @ composition
+def take_input_tranformation(dimensions):
+    basis_vectors = []
 
+    for i in range(dimensions):
+        basis = input_vector(
+            dimensions,
+            f"Enter transformed basis vector {i + 1}"
+        )
+        basis_vectors.append(basis)
+
+    return np.column_stack(basis_vectors) # convert each basis vector into coloumns
+    
+def perform_transformation(vector, composition, transformation):
+
+    # A = M2.M1
+    composition = transformation @ composition
+    # v = A.x
+    transformation = composition @ vector
+
+    return composition, transformation
+
+def setup_plotting(dimension):
+    if dimension == 2:
+        figure, axis = plt.subplots()
+
+    elif dimension == 3:
+        figure = plt.figure()
+        axis = figure.add_subplot(111, projection="3d")
+    else:
+        return None, None
+    
+    plt.ion()
+    return figure, axis
+
+def plot(axis, dimension, vector, composition):
+    axis.clear()
+
+    if dimension == 2:
+        axis.quiver(0, 0, vector[0], vector[1], angles="xy", scale_units="xy", scale=1, color="blue")
+        limit = max(5, np.max(abs(vector))*1.2)
+        axis.set_xlim(-limit, limit)
+        axis.set_ylim(-limit, limit)
+        axis.set_aspect("equal", adjustable="box")
+        axis.axhline(0, color="black")
+        axis.axvline(0, color="black")
+        axis.grid(True)
+
+    elif dimension == 3:
+        axis.quiver(0,0,0, vector[0], vector[1], vector[2], color="blue")
+        limit = max(5, np.max(abs(vector))*1.2)
+        axis.set_xlim(-limit, limit)
+        axis.set_ylim(-limit, limit)
+        axis.set_zlim(-limit, limit)
+        axis.set_box_aspect((1,1,1))
+        axis.set_xlable("X")
+        axis.set_ylable("Y")
+        axis.set_zlable("Z")
+
+    axis.set_title(f"Current vector: {np.round(vector, 3)}")
+
+    # else:
+    #     print("plotting nd")
+
+
+def main():
+    dimensions = int(input("In what dimention do you want to visulaize the transformations (eg. 2,3,4 etc): "))
+
+    vector = input_vector(dimensions)
+    composition = np.eye(dimensions)
+
+    fig, ax = setup_plotting(dimensions)
+    if fig is not None:
+        plot(ax, dimensions, vector, composition)
+        plt.show(block=False)
+    else:
+        print("ND mode: numerical computation only.")
+
+    while(True):
+        choice = input("\nAdd transformation? (yes/no): ").strip().lower()
+
+        if choice not in ("yes", "no"):
+            print("Please enter yes or no.")
+            continue
+
+        if choice == "no":
+            break
+
+        transformation = take_input_tranformation(dimensions)
+        composition, transformed_vector = perform_transformation(vector, composition, transformation)
         print(composition)
+        print(transformed_vector)
 
-        trasformed_x = composition[0][0] * vector[0] + composition[1][0] * vector[1]
-        trasformed_y = composition[0][1] * vector[0] + composition[1][1] * vector[1]
-        # print(trasformed_x, trasformed_y)
+        if fig is not None and plt.fignum_exists(fig.number):
+            plot(ax, dimensions, transformed_vector, composition)
+            fig.canvas.draw_idle()
+            plt.pause(0.1)
 
-        plt.quiver(tail_of_vector[0], tail_of_vector[1], trasformed_x, trasformed_y, angles='xy', scale_units = 'xy', scale = 1, color='blue')
-        plt.grid(True)
-        plt.xlim(-10,10)
-        plt.ylim(-10,10)
-        plt.axhline(0, color='black')
-        plt.axvline(0,color='black')
+    if fig is not None and plt.fignum_exists(fig.number):
+        plt.ioff()
         plt.show()
 
-    else:
-        break
+if __name__ == "__main__":
+    main()
